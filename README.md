@@ -14,12 +14,9 @@ Android-weather-app is an Android application built with Kotlin that provides re
 - Localization Support for English and Finnish
 
 ## Screenshots
-![image](https://github.com/user-attachments/assets/2516dc1c-2e72-465b-950d-4492556e1c85)
-![image](https://github.com/user-attachments/assets/7eb1c6ed-1ff6-44e3-a28f-6b5ccfd48183)
-![image](https://github.com/user-attachments/assets/28549120-4d92-46a7-b214-f2c7e6cd2034)
-
-![image](https://github.com/user-attachments/assets/89a9d6f6-2d43-41d8-b899-5303eacac5f1)
-
+<img src="https://github.com/user-attachments/assets/2516dc1c-2e72-465b-950d-4492556e1c85" alt=image width=300>
+<img src="https://github.com/user-attachments/assets/7eb1c6ed-1ff6-44e3-a28f-6b5ccfd48183" alt=image width=300>
+<img src="https://github.com/user-attachments/assets/89a9d6f6-2d43-41d8-b899-5303eacac5f1" alt=image width=300>
 
 <img src="https://github.com/user-attachments/assets/1202cdd8-99c7-4d7e-8f2d-8dabdfcb9355" alt=image width=300>
 <img src="https://github.com/user-attachments/assets/256e6d46-350b-4a80-b0fd-84f94c363333" alt=image width=300>
