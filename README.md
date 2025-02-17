@@ -1,22 +1,22 @@
 # Weather App
 
 ## Overview
-Android-weather-app is an Android application built with Kotlin that provides real-time weather updates based on a searched city. The app fetches weather data from an external API and presents it in a clean and user-friendly interface.
+Android-weather-app is an Android application built with Kotlin that provides real-time weather updates based on a searched city, or real device location. The app fetches weather data from an external API and presents it in a clean and user-friendly interface.
 
 ## Features
 - Display current weather conditions, including temperature, humidity, and wind speed
 - Display 3 hour forecast: 5 days (list scrollable left/right)
 - Open selected locations precipitation map in browser 
-- Search for weather updates by city name
-- Automatic location-based weather updates (not yet implemented)
+- Show weather by city name
+- Show weather automatically by current location
 - User-friendly UI with bottom bar navigation
 - Light and dark theme options
 - Localization Support for English and Finnish
 
 ## Screenshots
-<img src="https://github.com/user-attachments/assets/2516dc1c-2e72-465b-950d-4492556e1c85" alt=image width=300>
-<img src="https://github.com/user-attachments/assets/7eb1c6ed-1ff6-44e3-a28f-6b5ccfd48183" alt=image width=300>
-<img src="https://github.com/user-attachments/assets/89a9d6f6-2d43-41d8-b899-5303eacac5f1" alt=image width=300>
+<img src="https://github.com/user-attachments/assets/2516dc1c-2e72-465b-950d-4492556e1c85" alt=image width=250>
+<img src="https://github.com/user-attachments/assets/a3bc383c-4965-436e-a7ee-ba32e220b4ba" alt=image width=250>
+<img src="https://github.com/user-attachments/assets/89a9d6f6-2d43-41d8-b899-5303eacac5f1" alt=image width=250>
 
 ## Technologies Used
 - **Kotlin** - Primary programming language used for development.
@@ -28,6 +28,9 @@ Android-weather-app is an Android application built with Kotlin that provides re
 - **Retrofit Gson Converter** - Handles JSON serialization and deserialization when using Retrofit for network operations.
 - **DataStore Preferences** - A modern, asynchronous storage solution for simple key-value pairs, replacing SharedPreferences.
 - **Coil for Compose** - An image loading library for Compose, used to load and display images efficiently in your app.
+- **LocationManager** - Android Location API.
+- **Permissions** - ACCESS_COARSE_LOCATION for accessing device location data.
+- **State Management & Live Updates** - StateFlow to store and observe the current location, and LocationListener for reacting to changes.
 
 ## Installation
 
@@ -45,11 +48,11 @@ Android-weather-app is an Android application built with Kotlin that provides re
 ## Usage
 
 1. Launch the app.
-2. Enter a city name to fetch weather data.
-3. View real-time weather conditions and forecasts.
+2. Allow location permissions (optional)
+3. Enter a city name to fetch weather data, or toggle "Use My Location" on (requires step 2) to automatically fetch weather data from current location
+4. View real-time weather conditions and forecasts.
 
 ## Contact
-For any issues or suggestions, feel free to contact me:
 
 - **GitHub**: [AkseliTanila](https://github.com/AkseliTanila)
 - **Email**: [akke.tanila@gmail.com](mailto:akke.tanila@gmail.com)
