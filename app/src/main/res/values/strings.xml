@@ -17,4 +17,5 @@
     <string name="open_precipitation_map_title">Open Precipitation Map</string>
     <string name="target_city_textbox_title">Target City</string>
     <string name="save_city_button_text">Save City</string>
+    <string name="toggle_fetch_option">Use My Location</string>
 </resources>

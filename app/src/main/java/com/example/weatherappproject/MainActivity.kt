@@ -1,7 +1,15 @@
 package com.example.weatherappproject
 
+import android.annotation.SuppressLint
+import android.app.Activity
+import android.app.Application
 import android.content.Context
+import android.content.pm.PackageManager
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -24,6 +32,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -34,6 +43,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -52,7 +63,11 @@ import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.weatherappproject.ui.theme.FinalProjectWeatherAppTheme
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import retrofit2.http.Query
 
 class MainActivity : ComponentActivity() {
@@ -60,7 +75,17 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Get permissions to use device location / check if permissions are given
+        if (checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(
+                arrayOf(android.Manifest.permission.ACCESS_COARSE_LOCATION),
+                0
+            )
+        }
+
         setContent {
+            // Set theme style based of saved settings
             val context = LocalContext.current
             val isDarkTheme = produceState(initialValue = false) {
                 val itemClass = StoredItemsClass(context)
@@ -77,30 +102,35 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "items_data")
+// Get api key from apikeys.properties
 val myApiKey = BuildConfig.API_KEY
 
+// Data Store
+val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "items_data")
 class StoredItemsClass(private val context: Context) {
-
     private val cityNameKey = stringPreferencesKey("city_name")
     private val isDarkThemeKey = booleanPreferencesKey("is_dark_theme")
+    private val fetchByLocationKey = booleanPreferencesKey("fetch_by_location")
 
-    suspend fun saveValues(cityName: String, isDarkTheme: Boolean) {
+    suspend fun saveValues(cityName: String, isDarkTheme: Boolean, fetchByLocation: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[cityNameKey] = cityName
             preferences[isDarkThemeKey] = isDarkTheme
+            preferences[fetchByLocationKey] = fetchByLocation
         }
     }
 
-    fun getStoredValues(): Flow<Pair<String, Boolean>> {
+    fun getStoredValues(): Flow<Triple<String, Boolean, Boolean>> {
         return context.dataStore.data.map { preferences ->
             val cityName = preferences[cityNameKey] ?: "Tampere"
             val isDarkTheme = preferences[isDarkThemeKey] ?: false
-            Pair(cityName, isDarkTheme)
+            val fetchByLocation = preferences[fetchByLocationKey] ?: false
+            Triple(cityName, isDarkTheme, fetchByLocation)
         }
     }
 }
 
+// Retrofit implementation for fetching weather data
 data class WeatherResponse(
     val cod: String,
     val message: Int,
@@ -171,6 +201,16 @@ data class Coord(
 )
 
 interface ApiService{
+    // Fetch weather data by coordinates (lat, lon)
+    @GET("forecast")
+    suspend fun getWeatherByCoordinates(
+        @Query("lat") latitude: Double,
+        @Query("lon") longitude: Double,
+        @Query("units") units: String = "metric",
+        @Query("appid") apiKey: String = myApiKey
+    ): WeatherResponse
+
+    // Fetch weather data by city name
     @GET("forecast")
     suspend fun getWeatherByCity(
         @Query("q") city: String,
@@ -191,31 +231,46 @@ object RetrofitInstance{
     }
 }
 
-
+// Main
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainView(themeViewModel: ThemeViewModel){
+fun MainView(themeViewModel: ThemeViewModel, locationViewModel: LocationViewModel = viewModel()){
     val navController = rememberNavController()
     var forecast by remember { mutableStateOf<WeatherResponse?>(null) }
     var isLoading by remember { mutableStateOf(true) }
-    var storedData by remember { mutableStateOf(Pair("Tampere", false)) }
+    var storedData by remember { mutableStateOf(Triple("Tampere", false, false)) }
     val context = LocalContext.current
     val itemClass = remember { StoredItemsClass(context) }
+    val locationCoordinates by locationViewModel.locationData.collectAsState()
 
+    // Initial settings
     LaunchedEffect(Unit) {
         itemClass.getStoredValues().collect { data ->
             val cityName = if (data.first.isEmpty()) "Tampere" else data.first
-            storedData = data.copy(first = cityName)
+            storedData = Triple(cityName, data.second, data.third)
             themeViewModel.setTheme(data.second)
         }
     }
 
-    LaunchedEffect(storedData.first) {
+    // Initial location update
+    LaunchedEffect(Unit) {
+        if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            locationViewModel.startLocationListener()
+        }
+    }
+
+    // Initial weather data fetch
+    LaunchedEffect(storedData.first, locationCoordinates, storedData.third) {
         isLoading = true
-        // Data fetching
         withContext(Dispatchers.IO) {
             try {
-                forecast = RetrofitInstance.apiService.getWeatherByCity(storedData.first)
+                // Fetch data with coordinates, if feature is on, and location has been updated successfully, otherwise fetch by city
+                if (storedData.third && locationCoordinates.first != 0.0 && locationCoordinates.second != 0.0) {
+                    forecast = RetrofitInstance.apiService.getWeatherByCoordinates(locationCoordinates.first, locationCoordinates.second)
+                } else {
+                    forecast = RetrofitInstance.apiService.getWeatherByCity(storedData.first)
+                }
+
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
@@ -243,7 +298,7 @@ fun MainView(themeViewModel: ThemeViewModel){
             ) {
                 composable("home") { HomeView(navController, forecast, isLoading) }
                 composable("details") { DetailsView(navController) }
-                composable("settings") { SettingsView(navController, themeViewModel, itemClass, storedData) }
+                composable("settings") { SettingsView(context, navController, themeViewModel, itemClass, storedData) }
             }
         }
     )
@@ -302,6 +357,47 @@ class ThemeViewModel : ViewModel() {
 
     fun setTheme(isSetToDarkTheme: Boolean) {
         _isDarkTheme.value = isSetToDarkTheme
+    }
+}
+
+// ViewModel to get device location by coordinates
+class LocationViewModel(application: Application) : AndroidViewModel(application), LocationListener {
+
+    private val _locationData = MutableStateFlow(Pair(0.0, 0.0))
+    val locationData: StateFlow<Pair<Double, Double>> = _locationData
+
+    private val locationManager = application.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+
+    // Start location updates when permission is granted
+    @SuppressLint("MissingPermission")
+    fun startLocationListener() {
+        val context = getApplication<Application>().applicationContext
+        val hasPermission = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+        if (hasPermission) {
+            try {
+                locationManager.requestLocationUpdates(LocationManager.FUSED_PROVIDER, 0, 0f, this)
+            } catch (securityException: SecurityException) {
+                Toast.makeText(getApplication(), "No permission to access location", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            Toast.makeText(context, "Location permission not granted!", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // Stop location updates when no longer needed
+    fun stopLocationUpdates() {
+        locationManager.removeUpdates(this)
+    }
+
+    // This function is called when location updates happen
+    override fun onLocationChanged(location: Location) {
+        _locationData.value = Pair(location.latitude, location.longitude)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stopLocationUpdates()
     }
 }
 

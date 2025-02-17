@@ -17,4 +17,5 @@
     <string name="open_precipitation_map_title">Avaa Sadetutka</string>
     <string name="target_city_textbox_title">Kohde Kaupunki</string>
     <string name="save_city_button_text">Tallenna Kaupunki</string>
+    <string name="toggle_fetch_option">Käytä Paikkatietojani</string>
 </resources>
