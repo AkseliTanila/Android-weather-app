@@ -52,6 +52,9 @@ Android-weather-app is an Android application built with Kotlin that provides re
 3. Enter a city name to fetch weather data, or toggle "Use My Location" on (requires step 2) to automatically fetch weather data from current location
 4. View real-time weather conditions and forecasts.
 
+## License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
 ## Contact
 
 - **GitHub**: [AkseliTanila](https://github.com/AkseliTanila)
